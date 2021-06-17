@@ -25,6 +25,14 @@ use yii\helpers\Html;
                         : Html::a('Statuses >>', ['status/index'],['class' => 'btn btn-success'])
                     ?></p>
             </div>
+            <div class="col-lg-4">
+                <h2>My work costs</h2>
+                <p>View time spent on tasks.</p>
+                <p><?= Yii::$app->user->isGuest
+                        ? Html::a('Login', ['users/login'],['class' => 'btn btn-primary'])
+                        : Html::a('Work >>', ['workcosts/my'],['class' => 'btn btn-success'])
+                    ?></p>
+            </div>
         </div>
 
     </div>

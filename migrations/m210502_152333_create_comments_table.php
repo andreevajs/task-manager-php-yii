@@ -21,7 +21,7 @@ class m210502_152333_create_comments_table extends Migration
             'user_id' => $this->integer()->notNull(),
             'task_id' => $this->integer()->notNull(),
             'text' => $this->text(),
-            'creation_date' => $this->date()->notNull(),
+            'creation_date' => $this->dateTime()->notNull(),
         ]);
 
         // creates index for column `user_id`

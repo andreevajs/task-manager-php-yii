@@ -2,66 +2,47 @@
 
 namespace app\controllers;
 
-use app\models\StatusForm;
 use Yii;
-use yii\web\Controller;
-use yii\data\Pagination;
 use app\models\Status;
 
-class StatusController extends Controller
+class StatusController extends BaseController
 {
     public function actionIndex()
     {
-        $query = Status::find();
-
-        $pagination = new Pagination([
-            'defaultPageSize' => 5,
-            'totalCount' => $query->count(),
-        ]);
-
-        $statuses = $query->orderBy('name')
-            ->offset($pagination->offset)
-            ->limit($pagination->limit)
-            ->all();
-
-        return $this->render('index', [
-            'statuses' => $statuses,
-            'pagination' => $pagination,
-        ]);
+        return $this->render('index', $this->statusesService->getPaginatedStatuses());
     }
 
     public function actionCreate()
     {
-        $model = new Status;
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+        $status = new Status;
+        if ($status->load(Yii::$app->request->post())
+            && $this->statusesService->saveStatus($status)) {
                 return $this->redirect(['index']);
         }
 
         return $this->render('create', [
-            'model' => $model,
+            'model' => $status,
         ]);
     }
 
     public function actionUpdate($id)
     {
-        $model = Status::findOne(['id'=>$id]);
-        if ($model != null && $model->load(Yii::$app->request->post()) && $model->save()) {
+        $status = $this->statusesService->getStatusById($id);
+        if ($status != null
+            && $status->load(Yii::$app->request->post())
+            && $this->statusesService->saveStatus($status)) {
             return $this->redirect(['index']);
         }
 
-        $model = Status::findOne(['id'=>$id]);
+        $status = $this->statusesService->getStatusById($id);
         return $this->render('update', [
-            'model' => $model,
+            'model' => $status,
         ]);
     }
 
     public function actionDelete($id)
     {
-        $model = Status::findOne(['id' => $id]);
-        if ($model != null) {
-            $model->delete();
-        }
-
+        $this->statusesService->deleteStatus($id);
         return $this->goBack();
     }
 }

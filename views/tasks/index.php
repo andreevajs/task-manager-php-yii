@@ -2,6 +2,8 @@
 
 /* @var $search app\models\Search */
 /* @var $tasks app\models\TaskListItem */
+/* @var $view_tasks_search string */
+/* @var $pagination \yii\data\Pagination */
 
 use yii\helpers\Html;
 use yii\helpers\Url;
@@ -23,6 +25,9 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <div class="mt-3">
     <ul class="list-group">
+        <li class="list-group-item">
+            <?=$view_tasks_search?>
+        </li>
         <?php foreach ($tasks as $task): ?>
             <li class="list-group-item">
                 <a href="<?=Url::toRoute(['tasks/view', 'id' => $task->id]);?>">
@@ -33,7 +38,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     <span class="alert-info"><?= $task->title ?></span>
                     by
                     <span class="alert-warning"> <?= $task->stop_date != null ? $task->stop_date : 'someday' ?> </span>
-                    <?= Html::a('edit', ['tasks/update', 'id' => $task->id],['class' => 'badge btn-warning']) ?>
+                    <?= Html::a('edit', ['tasks/edit', 'id' => $task->id],['class' => 'badge btn-warning']) ?>
                 </a>
             </li>
         <?php endforeach; ?>

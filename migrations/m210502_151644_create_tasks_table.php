@@ -19,12 +19,12 @@ class m210502_151644_create_tasks_table extends Migration
     {
         $this->createTable('{{%tasks}}', [
             'id' => $this->primaryKey(),
-            'creation_date' => $this->date()->notNull(),
-            'stop_date' => $this->date(),
+            'creation_date' => $this->dateTime()->notNull(),
+            'stop_date' => $this->dateTime(),
             'title' => $this->string()->notNull(),
             'description' => $this->text(),
             'status_id' => $this->integer(),
-            'work_cost_assumption' => $this->time(),
+            'work_cost_assumption' => $this->dateTime(),
             'author_id' => $this->integer()->notNull(),
             'executor_id' => $this->integer(),
         ]);

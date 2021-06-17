@@ -63,17 +63,4 @@ class RegisterForm extends Model
             }
         }
     }
-
-    public function register()
-    {
-        if (!$this->validate()) {
-            return null;
-        }
-
-        $user = new User();
-        $user->login = $this->login;
-        $user->email = $this->email;
-        $user->password = $this->password;
-        return $user->save();
-    }
 }

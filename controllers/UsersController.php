@@ -12,11 +12,8 @@ use yii\filters\VerbFilter;
 use yii\web\Controller;
 use yii\web\Response;
 
-class UsersController extends Controller
+class UsersController extends BaseController
 {
-    /**
-     * {@inheritdoc}
-     */
     public function behaviors()
     {
         return [
@@ -40,59 +37,50 @@ class UsersController extends Controller
         ];
     }
 
-    /**
-     * Register action.
-     *
-     * @return Response|string
-     */
     public function actionRegister()
     {
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
 
-        $model = new RegisterForm();
-        if ($model->load(\Yii::$app->request->post()) && $model->register()) {
-            $loginModel = new LoginForm();
-            $loginModel->login = $model->login;
+        $registerForm = new RegisterForm();
+        if ($registerForm->load(\Yii::$app->request->post())
+            && $registerForm->validate()
+            && $this->usersService->registerUser($registerForm->login, $registerForm->email, $registerForm->password)) {
+
+            $loginForm = new LoginForm();
+            $loginForm->login = $registerForm->login;
+
             return $this->render('login', [
-                'model' => $loginModel,
+                'model' => $loginForm,
             ]);
         }
 
-        $model->password = '';
+        $registerForm->password = '';
         return $this->render('register', [
-            'model' => $model,
+            'model' => $registerForm,
         ]);
     }
 
-    /**
-     * Login action.
-     *
-     * @return Response|string
-     */
     public function actionLogin()
     {
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
 
-        $model = new LoginForm();
-        if ($model->load(\Yii::$app->request->post()) && $model->login()) {
+        $loginForm = new LoginForm();
+        if ($loginForm->load(\Yii::$app->request->post())
+            && $loginForm->validate()
+            && $this->usersService->loginUser($loginForm->login, $loginForm->password, $loginForm->rememberMe)) {
             return $this->goBack();
         }
 
-        $model->password = '';
+        $loginForm->password = '';
         return $this->render('login', [
-            'model' => $model,
+            'model' => $loginForm,
         ]);
     }
 
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
     public function actionLogout()
     {
         Yii::$app->user->logout();

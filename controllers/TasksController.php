@@ -2,157 +2,136 @@
 
 namespace app\controllers;
 
-use app\models\Search;
+use app\models\CommentForm;
+use app\models\SearchField;
+use app\models\SearchForm;
 use app\models\Task;
 use app\models\TaskForm;
-use app\models\TaskListItem;
-use app\models\User;
-use app\models\UserListItem;
+use app\models\TaskObserver;
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\filters\AccessControl;
-use yii\filters\VerbFilter;
-use yii\web\Controller;
-use yii\data\Pagination;
-use app\models\Status;
 
-class TasksController extends Controller
+class TasksController extends BaseController
 {
+
+
     public function behaviors()
     {
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['create','delete','update','todo','created'],
+                'only' => ['create','delete','edit','todo','created'],
                 'rules' => [
                     [
-                        'actions' => ['create','delete','update','todo','created'],
+                        'actions' => ['create','delete','edit','todo','created'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
                 ],
-            ],
-            'verbs' => [
-                'class' => VerbFilter::class,
-                'actions' => [
-                    'todo' => ['get'],
-                    'created' => ['get'],
-                    'create' => ['get','post'],
-                    'update' => ['get','put'],
-                ],
-            ],
+            ]
         ];
     }
 
     public function actionIndex()
     {
-        return $this->showListView('index',[]);
-    }
+        $searchForm = new SearchForm();
+        $searchForm->load($this->request->getQueryParams());
 
-    public function actionTodo()
-    {
-        return $this->showListView('index',['executor_id'=>Yii::$app->user->id]);
-    }
+        $dataProvider = new ActiveDataProvider([
+            'query' => $this->tasksService->getSearchQuery($searchForm),
+            'pagination' => [
+                'pageSize' => 15,
+            ],
+        ]);
 
-    public function actionCreated()
-    {
-        return $this->showListView('index',['author_id'=>Yii::$app->user->id]);
+        return $this->render('search', [
+            'dataProvider' => $dataProvider,
+            'searchForm' => $searchForm,
+            'statuses' => $this->statusesService->getStatuses(),
+            'users' => $this->usersService->getUsers()
+        ]);
     }
 
     public function actionView($id)
     {
-        $task = Task::findOne(['id' => $id]);
+        $task = $this->tasksService->getTaskById($id);
         if ($task == null) {
             return $this->goBack();
         }
 
+        $commentForm = new CommentForm();
+        if ($commentForm->load(Yii::$app->request->post())
+            && $this->commentsService->addComment($commentForm->text,$id)) {
+            return $this->redirect(['view','id'=>$id]);
+        }
+
+        $paginatedComments = $this->commentsService->getCommentsByTaskId($id);
+        $paginatedObservers = $this->taskObserversService->getUsersWhoObserveTask($id);
+
         return $this->render('view', [
-            'task' => $task,
+            'task' => $this->tasksService->createModelFromTask($task),
+            'view_workcosts_summary' => $this->renderPartial('//workcosts/summary',[
+                'workcosts' => $this->workcostsService->getWorkcostsByTaskId($id)
+            ]),
+            'view_comments_list' => $this->renderPartial('//comments/list',[
+                'commentForm'=> $commentForm,
+                'comments' => $paginatedComments['comments'],
+                'pagination' => $paginatedComments['pagination']
+            ]),
+            'view_tasks_observers' => $this->renderPartial('observers',[
+                'users' => $paginatedObservers['users'],
+                'pagination' => $paginatedObservers['pagination'],
+                'currentUserIsObserver' => $this->taskObserversService->userObservesTask(Yii::$app->user->id, $id),
+                'task_id' => $id
+            ])
         ]);
     }
 
     public function actionCreate()
     {
-        $model = new Task;
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view','id'=>$model->id]);
-        }
-
-        return $this->render('create', [
-            'model' => $model,
-        ]);
+        return $this->redirect(['edit']);
     }
 
-    public function actionUpdate($id)
+    public function actionEdit($id = 0)
     {
-        $model = Task::findOne(['id' => $id]);
-        if ($model != null && $model->load(Yii::$app->request->post()) && $model->save()) {
-            return $this->redirect(['view','id'=>$model->id]);
+        $task = new Task();
+        if ($id != 0) {
+            $task = $this->tasksService->getTaskById($id);
+        }
+        if ($task == null) {
+            return $this->redirect(['edit']);
         }
 
-        return $this->render('update', [
-            'model' => Task::findOne(['id' => $id]),
-            'users' => $this->mapUsersToUserListItems(User::find()->all()),
-            'statuses' => Status::find()->all()
+        $taskForm = $this->tasksService->createFormForTask($task);
+
+        if ($taskForm->load(Yii::$app->request->post())
+            && $this->tasksService->saveTaskFromForm($taskForm)) {
+            return $this->redirect(['index']);
+        }
+
+        return $this->render('edit', [
+            'task' => $taskForm,
+            'users' => $this->usersService->getUsers(),
+            'statuses' => $this->statusesService->getStatuses()
         ]);
     }
 
     public function actionDelete($id)
     {
-        $model = Task::findOne(['id' => $id]);
-        if ($model != null) {
-            $model->delete();
-        }
-
+        $this->tasksService->deleteTask($id);
         return $this->redirect(['index']);
     }
 
-    private function showListView($view, $condition)
+    public function actionObserve($id)
     {
-        $query = Task::find()
-            -> where($condition);
-
-        $pagination = new Pagination([
-            'defaultPageSize' => 5,
-            'totalCount' => $query->count(),
-        ]);
-
-        $tasks = Task::find()
-            ->where($condition)
-            ->offset($pagination->offset)
-            ->limit($pagination->limit)
-            ->all();
-
-        return $this->render($view, [
-            'tasks' => $this->mapTasksToTaskListItems($tasks),
-            'pagination' => $pagination,
-        ]);
+        $this->taskObserversService->observeTask($id);
+        return $this->redirect(['view','id'=>$id]);
     }
 
-    private function mapTasksToTaskListItems($tasks)
+    public function actionStopobserve($id)
     {
-        $list = [];
-        foreach ($tasks as $task) {
-            $item = new TaskListItem();
-            $item->id = $task->id;
-            $item->title = $task->title;
-            $item->stop_date = $task->stop_date;
-            $item->author = User::findOne(['id'=>$task->author_id])->login;
-            $executor = User::findOne(['id'=>$task->executor_id]);
-            $item->executor = $executor != null ? $executor->login : null;
-            array_push($list,$item);
-        }
-        return $list;
-    }
-
-    private function mapUsersToUserListItems($users)
-    {
-        $list = [];
-        foreach ($users as $user) {
-            $item = new UserListItem();
-            $item->id = $user->id;
-            $item->login = $user->login;
-            array_push($list,$item);
-        }
-        return $list;
+        $this->taskObserversService->stopObservingTask($id);
+        return $this->redirect(['view','id'=>$id]);
     }
 }

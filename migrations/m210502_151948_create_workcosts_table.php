@@ -20,7 +20,9 @@ class m210502_151948_create_workcosts_table extends Migration
             'id' => $this->primaryKey(),
             'user_id' => $this->integer()->notNull(),
             'task_id' => $this->integer()->notNull(),
-            'time' => $this->time()->notNull(),
+            'days' => $this->integer(2)->defaultValue(0),
+            'hours' => $this->integer(2)->defaultValue(0),
+            'minutes' => $this->integer(2)->defaultValue(0),
             'comment' => $this->text(),
         ]);
 

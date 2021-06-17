@@ -13,7 +13,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <li class="list-group-item">
                 <?= $status->name ?>
                 <?= Html::a('delete', ['status/delete', 'id' => $status->id],['class' => 'badge']) ?>
-                <?= Html::a('edit', ['status/update', 'id' => $status->id],['class' => 'badge']) ?>
+                <?= Html::a('rename', ['status/update', 'id' => $status->id],['class' => 'badge']) ?>
             </li>
         <?php endforeach; ?>
     </ul>

@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\services\UsersService;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
 
@@ -77,17 +78,5 @@ class User extends ActiveRecord implements IdentityInterface
     public function validatePassword($password)
     {
         return $this->password === $password;
-    }
-
-    public function beforeSave($insert)
-    {
-        if (parent::beforeSave($insert)) {
-            if ($this->isNewRecord) {
-                $this->auth_key = \Yii::$app->security->generateRandomString();
-                $this->creation_date = date();
-            }
-            return true;
-        }
-        return false;
     }
 }
